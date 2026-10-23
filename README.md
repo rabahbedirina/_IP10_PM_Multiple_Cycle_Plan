@@ -1,12 +1,12 @@
 # SAP PM IP10 Multiple Cycle Plan Automation
 
-**Current Version:** `v1.0.0`
+**Current Version:** `v2.0.0`
 
 **Author:** Rabah BEDIRINA
 
 **GitHub:** [rabahbedirina](https://github.com/rabahbedirina/)
 
-This project contains a VBScript automation utility designed to handle complex or multiple cycle maintenance plans within SAP transaction `IP10` under **SAP Plant Maintenance (PM)**.
+This project contains an advanced, production-grade VBScript automation utility designed to handle complex or multiple cycle maintenance plans within SAP transaction `IP10` under **SAP Plant Maintenance (PM)**.
 
 ---
 
@@ -18,22 +18,29 @@ This automation reads input parameters row-by-row from a CSV file, navigates thr
 
 ---
 
+## Key Features in Version 2.0.0
+
+* **Strict Header & Format Validation:** Automatically verifies that the CSV header matches `MaintenancePlan;StartDate;Sequence` and uses Regular Expressions to validate date formats (`DD.MM.YYYY`) and positive integer sequences.
+* **Audit Logging:** Generates a comprehensive, tab-delimited audit log (`DATA_processing.log`) capturing execution status (`SENT`, `DRY RUN`, or `ERROR`), timestamps, and detailed error messages per row.
+* **Dry Run Mode:** Supports a `/dryrun` command-line argument to safely test CSV syntax, dates, and sequences without interacting with SAP GUI.
+* **Robust Error Handling:** Features safe error trapping and structured execution flow.
+
+---
+
 ## Files Included
 
 - **`_IP10_PM_Multiple_Cycle_Plan.vbs`** — Main VBScript automation script for SAP GUI navigation.
-- **`DATA__IP10_Multiple_Cycle_Plan.csv`** (supports fallback filename `DATA_IP10_Multiple_Cycle_Plan.csv`) — Input data file containing plans, start dates, and sequence positions.
+- **`DATA_IP10_Multiple_Cycle_Plan.csv`** — Input data file containing plans, start dates, and sequence positions.
+- **`DATA_processing.log`** — Automatically generated audit log tracking execution results.
 - **`README.md`** — Project documentation.
 
 ---
 
 ## What the Script Does
 
-1. Verifies and loads the CSV data file from the script's current working directory (handling double-underscore naming conventions as a fallback).
-2. Skips the CSV header row.
-3. Reads each line and splits the semicolon-delimited values into:
-   - `MaintenancePlan`
-   - `StartDate`
-   - `Sequence`
+1. Verifies and loads the CSV data file from the script's working directory.
+2. Skips and validates the CSV header (`MaintenancePlan;StartDate;Sequence`).
+3. Reads each line and validates data types (non-empty plan, valid `DD.MM.YYYY` date, positive integer sequence).
 4. Activates the active SAP GUI window.
 5. Invokes transaction `/nIP10`.
 6. Enters the maintenance plan number and opens the schedule.
@@ -41,13 +48,13 @@ This automation reads input parameters row-by-row from a CSV file, navigates thr
 8. Dynamically calculates and executes `TAB` or `Shift + TAB` offsets based on the provided `Sequence` value to locate the exact target line.
 9. Selects the row, inserts the target start date, inputs the hour `07`, and confirms the dialog sequence.
 10. Saves the transaction using `Ctrl + S`.
-11. Repeats the workflow for all remaining rows and displays a completion summary pop-up.
+11. Repeats the workflow for all remaining rows and logs results to `DATA_processing.log`.
 
 ---
 
-## CSV Data File Format (`DATA__IP10_Multiple_Cycle_Plan.csv`)
+## CSV Data File Format (`DATA_IP10_Multiple_Cycle_Plan.csv`)
 
-The CSV file must use a semicolon (`;`) separator with the following exact column order:
+The CSV file must use a semicolon (`;`) separator with the following exact header and column order:
 
 ```csv
 MaintenancePlan;StartDate;Sequence
@@ -74,16 +81,24 @@ MaintenancePlan;StartDate;Sequence
 
 ## How to Run It
 
+### Method 1: Live Execution (GUI Mode)
 1. Open your SAP GUI session and log into your target client.
 2. Ensure the SAP window is visible and active.
 3. Place `_IP10_PM_Multiple_Cycle_Plan.vbs` and your CSV file in the same directory.
 4. Double-click the `.vbs` file to launch the automation.
 5. Click **OK** on the startup confirmation prompt and **do not touch your mouse or keyboard** while the script executes.
-6. A final pop-up notification will state when all rows have been processed.
+6. Inspect `DATA_processing.log` upon completion.
+
+### Method 2: Dry Run (Safety & Syntax Check)
+To test your CSV data and regex validations without touching SAP, open your command prompt (`cmd`) in the script directory and run:
+```cmd
+cscript _IP10_PM_Multiple_Cycle_Plan.vbs /dryrun DATA_IP10_Multiple_Cycle_Plan.csv DATA_processing.log
+```
 
 ---
 
-## Important Behavior & Limitations
+## Troubleshooting & Tips
 
-- **SendKeys Dependency:** The automation relies on `WScript.Shell.SendKeys` and fixed millisecond delays (`WScript.Sleep`). It requires a stable SAP user interface and standard screen layouts. If layout configurations change, navigation offsets may need fine-tuning.
-- **Validation:** Basic trimming is performed, but advanced pre-flight validation of SAP authorization or live plan statuses is not built into the script. Test thoroughly in a development or quality client first.
+- **SendKeys Dependency:** The automation relies on `WScript.Shell.SendKeys` and millisecond delays (`WScript.Sleep`). It requires a stable SAP user interface and standard screen layouts. If layout configurations change, navigation offsets may need fine-tuning.
+- **Log Analysis:** If any row fails validation or execution, check `DATA_processing.log` for precise row numbers and failure reasons.
+- **Testing:** Always test the script on a single test plan in a QA/Development SAP client before running it across a large production batch.
